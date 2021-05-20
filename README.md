@@ -1,3 +1,11 @@
+# Notice By GeForceLegend
+
+**This branch is not for creating pull request. It is created for testing large changes, and may get rolled back at any point.**
+
+**Positive changes will be pushed to other branches**
+
+**The following content is the original readme.**
+
 # <ins>Before you try it out, read this!</ins>
 
 **Slight epilepsy warning**, the shader generates a lot of noise (this is by design, imagine a very colorful TV static). Don't try it out if you are prone to seizures. This will be remedied in a future patch.

@@ -184,14 +184,14 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
         if (any(greaterThan(abs(ray.currentBlock), vec3(LAYER_SIZE / 2 - 1)))) {
             // We're outside of the known world, there will be dragons. Let's stop
             break;
-        } else if (3 - rawData.x - rawData.y - rawData.z > EPSILON) {
+        } else if (3 - EPSILON > rawData.x + rawData.y + rawData.z) {
             // If it's a block (type is non negative), we stop and draw to the screen.
             vec3 normal = -signedDirection * nextBlock;
             vec2 texCoord = mix((vec2(ray.blockPosition.x, 1.0 - ray.blockPosition.y) - 0.5) * vec2(abs(normal.y) + normal.z, 1.0), 
                                 (vec2(1.0 - ray.blockPosition.z, ray.blockPosition.z) - 0.5) * vec2(normal.x + normal.y), nextBlock.xy) + vec2(0.5);
             BlockData blockData = getBlock(rawData, texCoord);
             return Hit(totalT, ray.currentBlock, ray.blockPosition, normal, blockData, texCoord);
-        } else if (reflected && abs(ray.currentBlock.x + 1) <= 1 && abs(ray.currentBlock.z + 1) <= 1 && abs(ray.currentBlock.y + 2) <= 1 ) {
+        } else if (reflected && distance(ray.currentBlock, vec3(-1.0, -2.0, -1.0)) < 1.8 ) {
             vec3 rayActualPos = ray.currentBlock + ray.blockPosition + chunkOffset;
             float t2 = intersectPlane(rayActualPos, ray.direction, vec3(facingDirection.x, 1e-5, facingDirection.z));
             vec3 thingHitPos = rayActualPos + ray.direction * t2;
@@ -234,7 +234,7 @@ vec3 globalIllumination(Hit hit, Ray ray, float traceSeed) {
         sunRay = Ray(hit.block, hit.blockPosition, sunDirection);
 
         // Path tracing
-        hit = trace(ray, MAX_GLOBAL_ILLUMINATION_STEPS, true);
+        hit = trace(ray, MAX_STEPS, true);
         sunlightHit = trace(sunRay, MAX_STEPS, true);
 
         accumulated += hit.blockData.emission.rgb * MAX_EMISSION_STRENGTH * weight * hit.blockData.emission.a;
@@ -271,7 +271,7 @@ vec3 pathTrace(Ray ray, out float depth) {
     // Reflection
     for (int steps = 0; steps < MAX_REFLECTION_BOUNCES; steps++) {
         weight *= fresnel(hit.blockData.F0, 1 - dot(ray.direction, hit.normal));
-        if (dot(weight, hit.blockData.F0) < 1e-2) {
+        if (dot(weight, hit.blockData.F0) < 5e-3) {
             break;
         }
         

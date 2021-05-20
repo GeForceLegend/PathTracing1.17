@@ -69,7 +69,7 @@ struct BlockData {
 };
 
 struct Hit {
-    float t;
+    float traceLength;
     vec3 block;
     vec3 blockPosition;
     vec3 normal;
@@ -78,7 +78,7 @@ struct Hit {
 };
 
 struct BounceHit {
-    float t;
+    float traceLength;
     vec3 block;
     vec3 blockPosition;
     vec3 color;
@@ -154,7 +154,7 @@ vec3 fresnel(vec3 F0, float cosTheta) {
 }
 
 Hit trace(Ray ray, int maxSteps, bool reflected) {
-    float totalT = 0;
+    float rayLength = 0;
     vec3 signedDirection = sign(ray.direction);
     vec3 steps = (signedDirection * 0.5 + 0.5 - ray.blockPosition) / ray.direction;
     // Cap the amount of steps we take to make sure no ifinite loop happens.
@@ -166,17 +166,17 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
         // components of the ray's direction, but I'll keep it simple here. Faster algorithms also exist.
 
         // The steps in each direction:
-        float t = min(min(steps.x, steps.y), steps.z);
+        float stepLength = min(min(steps.x, steps.y), steps.z);
 
-        ray.blockPosition += t * ray.direction;
-        steps -= t;
-        totalT += t;
+        ray.blockPosition += stepLength * ray.direction;
+        steps -= stepLength;
+        rayLength += stepLength;
 
         // We select the smallest of the steps and update the current block and block position.
         vec3 nextBlock = step(steps, vec3(EPSILON));
 
         ray.currentBlock += signedDirection * nextBlock;
-        ray.blockPosition = mix(ray.blockPosition, (1 - signedDirection) / 2, nextBlock);
+        ray.blockPosition = mix(ray.blockPosition, step(signedDirection, vec3(0.5)), nextBlock);
         steps += signedDirection / ray.direction * nextBlock;
 
         // We can now query if there's a block at the current position.
@@ -190,16 +190,16 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
             vec2 texCoord = mix((vec2(ray.blockPosition.x, 1.0 - ray.blockPosition.y) - 0.5) * vec2(abs(normal.y) + normal.z, 1.0), 
                                 (vec2(1.0 - ray.blockPosition.z, ray.blockPosition.z) - 0.5) * vec2(normal.x + normal.y), nextBlock.xy) + vec2(0.5);
             BlockData blockData = getBlock(rawData, texCoord);
-            return Hit(totalT, ray.currentBlock, ray.blockPosition, normal, blockData, texCoord);
+            return Hit(rayLength, ray.currentBlock, ray.blockPosition, normal, blockData, texCoord);
         } else if (reflected && distance(ray.currentBlock, vec3(-1.0, -2.0, -1.0)) < 1.8 ) {
             vec3 rayActualPos = ray.currentBlock + ray.blockPosition + chunkOffset;
-            float t2 = intersectPlane(rayActualPos, ray.direction, vec3(facingDirection.x, 1e-5, facingDirection.z));
-            vec3 thingHitPos = rayActualPos + ray.direction * t2;
-            float nextBlockDepth = min(min(steps.x, steps.y), steps.z);
+            float steveDistance = intersectPlane(rayActualPos, ray.direction, vec3(facingDirection.x, 1e-5, facingDirection.z));
+            vec3 thingHitPos = rayActualPos + ray.direction * steveDistance;
+            float nextStepLength = min(min(steps.x, steps.y), steps.z);
             // Let's check whether the ray will intersect a cylinder
-            if (abs(2.0 * t2 - nextBlockDepth) < nextBlockDepth && abs(0.70 + thingHitPos.y) < 1 && length(thingHitPos.xz) < 0.5) {
+            if (abs(2.0 * steveDistance - nextStepLength) < nextStepLength && abs(0.70 + thingHitPos.y) < 1 && length(thingHitPos.xz) < 0.5) {
                 Hit hit;
-                hit.t = 999;
+                hit.traceLength = 999;
                 hit.texCoord = vec2((length(thingHitPos.xz) + 0.56) * 1.8 / 2, 0.10 - (thingHitPos.y) / 2);
 
                 vec3 thingColor = texture(SteveSampler, hit.texCoord).rgb;
@@ -211,7 +211,7 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
         }
     }
     Hit hit;
-    hit.t = -1;
+    hit.traceLength = -1;
     return hit;
 }
 
@@ -227,7 +227,7 @@ vec3 globalIllumination(Hit hit, Ray ray, float traceSeed) {
 
         // Summon rays
         vec3 direction = randomDirection(texCoord, hit.normal, float(steps) * 754.54 + traceSeed);
-        vec3 sunDirection = randomDirection(texCoord, sunDir * 50, float(steps) + 823.375 + traceSeed);
+        vec3 sunDirection = randomDirection(texCoord, sunDir * 100, float(steps) + 823.375 + traceSeed);
         float NdotL = max(dot(sunDir, hit.normal), 0.0);
 
         ray = Ray(hit.block, hit.blockPosition, direction);
@@ -238,10 +238,10 @@ vec3 globalIllumination(Hit hit, Ray ray, float traceSeed) {
         sunlightHit = trace(sunRay, MAX_STEPS, true);
 
         accumulated += hit.blockData.emission.rgb * MAX_EMISSION_STRENGTH * weight * hit.blockData.emission.a;
-        accumulated += sqrt(NdotL) * step(sunlightHit.t, EPSILON) * pow(SUN_COLOR, vec3(GAMMA_CORRECTION)) * weight;
+        accumulated += sqrt(NdotL) * step(sunlightHit.traceLength, EPSILON) * pow(SUN_COLOR, vec3(GAMMA_CORRECTION)) * weight;
 
         // Didn't hit a block, considered as hitted sky
-        if (hit.t < EPSILON) {
+        if (hit.traceLength < EPSILON) {
             accumulated += pow(SKY_COLOR, vec3(GAMMA_CORRECTION)) * weight;
             break;
         }
@@ -256,10 +256,10 @@ vec3 pathTrace(Ray ray, out float depth) {
     
     // Get direct world position
     Hit hit = trace(ray, MAX_STEPS, false);
-    depth = hit.t + near;
+    depth = hit.traceLength + near;
 
     // Sky
-    if (hit.t < EPSILON) {
+    if (hit.traceLength < EPSILON) {
         depth = far;
         return pow(SKY_COLOR, vec3(GAMMA_CORRECTION));
     }
@@ -278,7 +278,7 @@ vec3 pathTrace(Ray ray, out float depth) {
         ray = Ray(hit.block, hit.blockPosition, reflect(ray.direction, hit.normal));
         hit = trace(ray, MAX_STEPS, true);
 
-        if (hit.t < EPSILON) {
+        if (hit.traceLength < EPSILON) {
             accumulated += pow(SKY_COLOR, vec3(GAMMA_CORRECTION)) * weight;
             break;
         }

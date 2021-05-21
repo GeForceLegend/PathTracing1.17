@@ -187,7 +187,7 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
         } else if (3 - EPSILON > rawData.x + rawData.y + rawData.z) {
             // If it's a block (type is non negative), we stop and draw to the screen.
             vec3 normal = -signedDirection * nextBlock;
-            vec2 texCoord = mix((vec2(ray.blockPosition.x, 1.0 - ray.blockPosition.y) - 0.5) * vec2(abs(normal.y) + normal.z, 1.0), 
+            vec2 texCoord = mix((vec2(ray.blockPosition.x, 1.0 - ray.blockPosition.y) - 0.5) * vec2(abs(normal.y) + normal.z, 1.0),
                                 (vec2(1.0 - ray.blockPosition.z, ray.blockPosition.z) - 0.5) * vec2(normal.x + normal.y), nextBlock.xy) + vec2(0.5);
             BlockData blockData = getBlock(rawData, texCoord);
             return Hit(rayLength, ray.currentBlock, ray.blockPosition, normal, blockData, texCoord);
@@ -237,7 +237,7 @@ vec3 globalIllumination(Hit hit, Ray ray, float traceSeed) {
         hit = trace(ray, MAX_STEPS, true);
         sunlightHit = trace(sunRay, MAX_STEPS, true);
 
-        accumulated += hit.blockData.emission.rgb * MAX_EMISSION_STRENGTH * weight * hit.blockData.emission.a;
+        accumulated += hit.blockData.emission.rgb * MAX_EMISSION_STRENGTH * hit.blockData.emission.a * weight;
         accumulated += sqrt(NdotL) * step(sunlightHit.traceLength, EPSILON) * pow(SUN_COLOR, vec3(GAMMA_CORRECTION)) * weight;
 
         // Didn't hit a block, considered as hitted sky
@@ -246,14 +246,14 @@ vec3 globalIllumination(Hit hit, Ray ray, float traceSeed) {
             break;
         }
     }
-    
+
     return accumulated;
 }
 
 vec3 pathTrace(Ray ray, out float depth) {
     vec3 accumulated = vec3(0.0);
     vec3 weight = vec3(1.0);
-    
+
     // Get direct world position
     Hit hit = trace(ray, MAX_STEPS, false);
     depth = hit.traceLength + near;
@@ -274,7 +274,7 @@ vec3 pathTrace(Ray ray, out float depth) {
         if (dot(weight, hit.blockData.F0) < 5e-3) {
             break;
         }
-        
+
         ray = Ray(hit.block, hit.blockPosition, reflect(ray.direction, hit.normal));
         hit = trace(ray, MAX_STEPS, true);
 
@@ -284,6 +284,7 @@ vec3 pathTrace(Ray ray, out float depth) {
         }
         // Global Illumination in reflecton
         accumulated += globalIllumination(hit, ray, 456.56 * (float(steps) + 1)) * weight;
+        accumulated += hit.blockData.emission.rgb * MAX_EMISSION_STRENGTH * hit.blockData.emission.a * weight;
     }
 
     return accumulated;
@@ -388,7 +389,7 @@ void main() {
     for ( int ii = 1; ii < active_layers; ++ii ) {
         texelAccum = blend(texelAccum, color_layers[ii]);
     }
-    
+
     texelAccum = uchimura(texelAccum);
     texelAccum = pow(texelAccum, vec3(1.0 / GAMMA_CORRECTION));
 

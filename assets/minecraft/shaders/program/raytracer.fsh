@@ -47,7 +47,8 @@ in vec3 rayDir;
 in vec3 facingDirection;
 in float near;
 in float far;
-in vec3 movement;
+// in vec3 movement;
+in float steveCoordOffset;
 
 out vec4 fragColor;
 
@@ -208,19 +209,11 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
                 hit.traceLength = 999;
 
                 vec2 horizontalFacingDirection = normalize(facingDirection.xz);
-                hit.texCoord = vec2((dot(thingHitPos.xz, vec2(-horizontalFacingDirection.y, horizontalFacingDirection.x)) + 0.5) / 6, 0.10 - thingHitPos.y / 2);
-
-                if (chunkOffset.y > 0.7) {
-                    vec3 rawData = texture(DiffuseSampler, pixelToTexCoord(blockToPixel(vec3(thingHitPos.x - 1, -3, thingHitPos.z - 1)))).rgb;
-                    hit.texCoord.x += 0.5 * step(rawData.x + rawData.y + rawData.z, 3.0 - EPSILON);
-                }
-
-                if (dot(movement, movement) > EPSILON) {
-                    hit.texCoord.x += (floor(fract(Time * 2) / 0.5) + 1) / 6;
-                }
+                hit.texCoord = vec2((dot(thingHitPos.xz, vec2(-horizontalFacingDirection.y, horizontalFacingDirection.x)) + 0.5) / 6 + steveCoordOffset,
+                                    0.10 - thingHitPos.y / 2);
 
                 vec3 thingColor = texture(SteveSampler, hit.texCoord).rgb;
-                if (thingColor.x + thingColor.y + thingColor.z > 0) {
+                if (thingColor.x + thingColor.y + thingColor.z > EPSILON) {
                     hit.blockData.albedo = pow(thingColor, vec3(2.2));
                     return hit;
                 }

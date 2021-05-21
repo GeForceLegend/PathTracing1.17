@@ -233,7 +233,7 @@ vec3 globalIllumination(Hit hit, Ray ray, float traceSeed) {
 
         // Summon rays
         vec3 direction = randomDirection(texCoord, hit.normal, float(steps) * 754.54 + traceSeed, 1.0);
-        vec3 sunDirection = randomDirection(texCoord, sunDir, float(steps) + 823.375 + traceSeed, 0.02);
+        vec3 sunDirection = randomDirection(texCoord, sunDir, float(steps) + 823.375 + traceSeed, 0.01);
         float NdotL = max(dot(sunDir, hit.normal), 0.0);
 
         ray = Ray(hit.block, hit.blockPosition, direction);

@@ -8,17 +8,87 @@
         "weather",
         "previousFrame",
         "previousData",
-        "final"
+        "pathtraced",
+        "denoised",
+        "combined"
     ],
     "passes": [
         {
             "name": "raytracer",
             "intarget": "minecraft:main",
-            "outtarget": "final",
+            "outtarget": "pathtraced",
+            "auxtargets": [
+                {
+                    "name": "PreviousFrameDataSampler",
+                    "id": "previousData"
+                },
+                {
+                    "name": "AtlasSampler",
+                    "id": "atlas",
+                    "width": 1,
+                    "height": 1,
+                    "bilinear": false
+                },
+                {
+                    "name": "SteveSampler",
+                    "id": "steve",
+                    "width": 1,
+                    "height": 1,
+                    "bilinear": false
+                }
+            ]
+        },
+        {
+            "name": "denoiser",
+            "intarget": "pathtraced",
+            "outtarget": "denoised",
+            "auxtargets": [
+                {
+                    "name": "CurrentFrameDataSampler",
+                    "id": "minecraft:main"
+                },
+                {
+                    "name": "CurrentFrameDepthSampler",
+                    "id": "pathtraced:depth"
+                },
+                {
+                    "name": "PreviousFrameSampler",
+                    "id": "previousFrame"
+                },
+                {
+                    "name": "PreviousFrameDataSampler",
+                    "id": "previousData"
+                },
+                {
+                    "name": "PreviousFrameDepthSampler",
+                    "id": "previousFrame:depth"
+                }
+            ]
+        },
+        {
+            "name": "copy_with_depth",
+            "intarget": "denoised",
+            "outtarget": "previousFrame",
+            "auxtargets": [
+                {
+                    "name": "DepthSampler",
+                    "id": "pathtraced:depth"
+                }
+            ]
+        },
+        {
+            "name": "blit",
+            "intarget": "minecraft:main",
+            "outtarget": "previousData"
+        },
+        {
+            "name": "transparency",
+            "intarget": "denoised",
+            "outtarget": "combined",
             "auxtargets": [
                 {
                     "name": "DiffuseDepthSampler",
-                    "id": "minecraft:main:depth"
+                    "id": "pathtraced:depth"
                 },
                 {
                     "name": "TranslucentSampler",
@@ -59,44 +129,12 @@
                 {
                     "name": "WeatherDepthSampler",
                     "id": "weather:depth"
-                },
-                {
-                    "name": "PreviousFrameSampler",
-                    "id": "previousFrame"
-                },
-                {
-                    "name": "PreviousFrameDataSampler",
-                    "id": "previousData"
-                },
-                {
-                    "name": "AtlasSampler",
-                    "id": "atlas",
-                    "width": 1,
-                    "height": 1,
-                    "bilinear": false
-                },
-                {
-                    "name": "SteveSampler",
-                    "id": "steve",
-                    "width": 1,
-                    "height": 1,
-                    "bilinear": false
                 }
             ]
         },
         {
             "name": "blit",
-            "intarget": "final",
-            "outtarget": "previousFrame"
-        },
-        {
-            "name": "blit",
-            "intarget": "minecraft:main",
-            "outtarget": "previousData"
-        },
-        {
-            "name": "blit",
-            "intarget": "final",
+            "intarget": "combined",
             "outtarget": "minecraft:main"
         }
     ]

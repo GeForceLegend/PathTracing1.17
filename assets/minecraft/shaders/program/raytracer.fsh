@@ -35,6 +35,7 @@ in mat4 projInv;
 in vec3 chunkOffset;
 in vec3 rayDir;
 in vec3 facingDirection;
+in vec2 horizontalFacingDirection;
 in float near;
 in float far;
 in float steveCoordOffset;
@@ -197,7 +198,6 @@ Hit trace(Ray ray, int maxSteps, bool reflected) {
                 Hit hit;
                 hit.traceLength = 999;
 
-                vec2 horizontalFacingDirection = normalize(facingDirection.xz);
                 hit.texCoord = vec2((dot(thingHitPos.xz, vec2(-horizontalFacingDirection.y, horizontalFacingDirection.x)) + 0.5) / 6 + steveCoordOffset,
                                     0.10 - thingHitPos.y / 2);
 

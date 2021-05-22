@@ -261,7 +261,7 @@ vec3 pathTrace(Ray ray, out float depth) {
         // We didn't hit anything
         depth = far;
         float sunFactor = smoothstep(0.9987, 0.999, dot(ray.direction, sunDir));
-        return pow(sunFactor * SUN_COLOR + (1 - sunFactor) * SKY_COLOR, vec3(GAMMA_CORRECTION)) * weight;
+        return sunFactor * pow(SUN_COLOR, vec3(GAMMA_CORRECTION)) + (1 - sunFactor) * pow(SKY_COLOR, vec3(GAMMA_CORRECTION));
     }
 
     // Global Illumination
@@ -282,7 +282,9 @@ vec3 pathTrace(Ray ray, out float depth) {
 
         if (hit.traceLength < EPSILON) {
             // We didn't hit anything
-            accumulated += pow(SKY_COLOR, vec3(GAMMA_CORRECTION)) * weight;
+            float sunFactor = smoothstep(0.9987, 0.999, dot(ray.direction, sunDir));
+            accumulated += (sunFactor * pow(SUN_COLOR, vec3(GAMMA_CORRECTION)) +
+                            (1 - sunFactor) * pow(SKY_COLOR, vec3(GAMMA_CORRECTION))) * weight;
             break;
         }
         // Global Illumination in reflecton
@@ -335,6 +337,7 @@ void main() {
     if (depth < 0) depth = far;
 
     fragColor = vec4(pow(color, vec3(1.0 / GAMMA_CORRECTION)), 1);
+    fragColor.rgb = uchimura(fragColor.rgb);
 
     vec4 position = projMat * modelViewMat * vec4(nRayDir * (depth - near), 1);
     float diffuseDepth = position.z / position.w;

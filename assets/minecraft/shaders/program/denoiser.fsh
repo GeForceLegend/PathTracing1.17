@@ -68,7 +68,7 @@ void main() {
     vec2 prevTexCoord = (prevClip.xy / prevClip.w + 1) / 2;
 
     // Throw away the previous data if the uvs fall outside of the screen area
-    if (any(greaterThan(abs(prevTexCoord - 0.5), vec2(0.5))) || currDepth > 1 - 1e-6) {
+    if (any(greaterThan(abs(prevTexCoord - 0.5), vec2(0.5)))) {
         return;
     }
 
@@ -76,9 +76,9 @@ void main() {
     float prevDepth = texture(PreviousFrameDepthSampler, prevTexCoord).r * 2 - 1;
     vec3 prevWorldPos = calculateWorldPos(prevDepth, prevTexCoord, prevProjMat, prevModelViewMat);
 
-    if (length(worldPos - prevWorldPos - prevPosition) > 5) {
-        return;
-    }
+    // if (length(worldPos - prevWorldPos - prevPosition) > 5) {
+    //     return;
+    // }
 
     // Temporal antialiasing from same talk mentioned earlier
     vec3 prevColor = texture(PreviousFrameSampler, prevTexCoord).rgb;
@@ -87,7 +87,7 @@ void main() {
     vec3 maxCol = vec3(0);
     for (float x = -1; x <= 1; x++) {
         for (float y = -1; y <= 1; y++) {
-            vec3 neighbor = texture(DiffuseSampler, texCoord + vec2(x, y)).rgb;
+            vec3 neighbor = texture(DiffuseSampler, texCoord + vec2(x, y) * oneTexel).rgb;
             minCol = min(minCol, neighbor);
             maxCol = max(maxCol, neighbor);
         }
@@ -96,5 +96,5 @@ void main() {
     // Then we'll clip the previous color into the clip space
     vec3 clippedPrevColor = clipColor(minCol, maxCol, prevColor);
     // And use the clipped value for aliasing
-    fragColor.rgb = mix(fragColor.rgb, clippedPrevColor, 0.5);
+    fragColor.rgb = mix(fragColor.rgb, clippedPrevColor, 0.9);
 }

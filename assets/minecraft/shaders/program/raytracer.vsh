@@ -107,7 +107,17 @@ void main() {
     sunDir = normalize(vec3(1, 3, 2));
 
     projInv = inverse(projMat * modelViewMat);
-    rayDir = (projInv * vec4(outPos.xy * (far - near), far + near, far - near)).xyz;
+
+    const int bayerMatrix[16] = int[16](
+		0,  8,  2, 10,
+		12, 4,  14, 6, 
+		3,  11, 1,  9,
+		15, 7,  13, 5
+	);
+    int offsetData = bayerMatrix[int(mod(Time * 60, 16.0))];
+    vec2 taaOffset = vec2(offsetData % 4, offsetData / 4).yx / 2.0 - 1.0;
+
+    rayDir = (projInv * vec4(outPos.xy * (far - near) + taaOffset, far + near, far - near)).xyz;
     facingDirection = (vec4(0, 0, -1, 0) * modelViewMat).xyz;
     horizontalFacingDirection = normalize(facingDirection.xz);
 

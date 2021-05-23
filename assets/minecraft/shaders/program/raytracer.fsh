@@ -336,6 +336,7 @@ void main() {
     vec3 color = pathTrace(ray, depth);
     if (depth < 0) depth = far;
 
+    color.rgb = uchimura(color.rgb);
     fragColor = vec4(pow(color, vec3(1.0 / GAMMA_CORRECTION)), 1);
     fragColor.rgb = uchimura(fragColor.rgb);
 

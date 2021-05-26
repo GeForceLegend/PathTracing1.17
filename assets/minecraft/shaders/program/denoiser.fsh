@@ -76,10 +76,6 @@ void main() {
     float prevDepth = texture(PreviousFrameDepthSampler, prevTexCoord).r * 2 - 1;
     vec3 prevWorldPos = calculateWorldPos(prevDepth, prevTexCoord, prevProjMat, prevModelViewMat);
 
-    // if (length(worldPos - prevWorldPos - prevPosition) > 5) {
-    //     return;
-    // }
-
     // Temporal antialiasing from same talk mentioned earlier
     vec3 prevColor = texture(PreviousFrameSampler, prevTexCoord).rgb;
     // We'll calculate the color space from the neighbouring texels
